@@ -1,0 +1,207 @@
+import { useMemo } from "react";
+function OverviewPage({ tasks, summary, setSelectedTaskId, setPage }) {
+
+
+const formatElapsedTime = (seconds) => {
+    if (!seconds) return "0秒";
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}小时${mins}分钟`;
+    } else if (mins > 0) {
+      return `${mins}分钟${secs}秒`;
+    } else {
+      return `${secs}秒`;
+    }
+  };
+
+  // 计算今日统计
+  const todayStats = useMemo(() => {
+    const today = new Date().toDateString();
+    const todayTasks = tasks.filter(task => {
+      if (!task.sessions || task.sessions.length === 0) return false;
+      const lastSession = task.sessions[task.sessions.length - 1];
+      return new Date(lastSession.startTime).toDateString() === today;
+    });
+
+    const totalFocusTime = todayTasks.reduce((sum, task) => {
+      return sum + (task.sessions?.reduce((sessionSum, session) => sessionSum + (session.durationSeconds || 0), 0) || 0);
+    }, 0);
+
+    const completedTasks = todayTasks.filter(task => task.status === "已整理").length;
+
+    return {
+      todayTasks: todayTasks.length,
+      totalFocusTime,
+      completedTasks
+    };
+  }, [tasks]);
+
+  const statItems = [
+    { label: "任务总数", value: summary.total, icon: "📝", color: "from-blue-500 to-blue-600" },
+    { label: "运行中", value: summary.running, icon: "▶️", color: "from-green-500 to-green-600" },
+    { label: "暂停", value: summary.paused, icon: "⏸️", color: "from-amber-500 to-amber-600" },
+    { label: "已整理", value: summary.organized, icon: "✅", color: "from-purple-500 to-purple-600" },
+  ];
+
+  return (
+    <div className="page-container">
+      <div className="mb-8 animate-slideInUp">
+        <h2 className="page-title mb-2">总览</h2>
+        <p className="text-white/60">今天的任务与工作流概况</p>
+      </div>
+
+      <div className="grid-stats">
+        {statItems.map((item, idx) => (
+          <div
+            key={idx}
+            className={`stat-card bg-gradient-to-br ${item.color} bg-opacity-5`}
+            style={{
+              animation: `scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 0.1}s both`,
+            }}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="text-3xl">{item.icon}</div>
+              <div className="text-xs font-semibold px-2 py-1 bg-white/10 rounded-full text-white/60">
+                {item.label}
+              </div>
+            </div>
+            <div className="text-4xl font-bold">{item.value}</div>
+            <div className="h-1 bg-white/10 rounded-full mt-4 overflow-hidden">
+              <div
+                className={`h-full bg-gradient-to-r ${item.color} shadow-lg`}
+                style={{ width: `${Math.min((item.value / Math.max(summary.total, 1)) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card animate-slideInUp" style={{ animationDelay: "0.2s" }}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="section-title mb-0">最近任务</h3>
+          <button
+            onClick={() => setPage("tasks")}
+            className="text-sm text-blue-400 hover:text-blue-300 transition-colors hover:scale-110"
+          >
+            查看全部 →
+          </button>
+        </div>
+
+        {tasks.length === 0 ? (
+          <div className="py-12 text-center animate-fadeIn">
+            <div className="text-5xl mb-3 animate-float">📋</div>
+            <p className="text-white/60">还没有任务，开始创建一个吧</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {tasks.slice(0, 5).map((task, idx) => {
+              const statusConfig = {
+                "未开始": { badge: "badge-secondary", icon: "⭕" },
+                "专注中": { badge: "badge-success", icon: "🟢" },
+                "已暂停": { badge: "badge-warning", icon: "🟡" },
+                "已扫描": { badge: "badge-info", icon: "🔵" },
+                "已整理": { badge: "badge-success", icon: "✅" },
+              };
+              const config = statusConfig[task.status] || statusConfig["未开始"];
+
+              return (
+                <div
+                  key={task.id}
+                  className="task-item group"
+                  style={{
+                    animation: `scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.2 + idx * 0.08}s both`,
+                  }}
+                  onClick={() => {
+                    setSelectedTaskId(task.id);
+                    setPage("tasks");
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold group-hover:text-blue-300 transition-colors">
+                        {task.name}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`badge ${config.badge}`}>{config.icon} {task.status || "未开始"}</span>
+                        {task.elapsedSeconds > 0 && (
+                          <span className="text-xs text-white/60">
+                            ⏱️ {formatElapsedTime(task.elapsedSeconds)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-white/40 group-hover:text-blue-400 transition-colors">→</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { icon: "🎯", title: "保持专注", desc: "一次只做一件事，效率更高", delay: "0.3s" },
+          { icon: "📁", title: "自动整理", desc: "扫描并分类工作期间的新文件", delay: "0.4s" },
+          { icon: "📊", title: "总结复盘", desc: "记录成长，改进工作流程", delay: "0.5s" },
+        ].map((item, idx) => (
+          <div
+            key={idx}
+            className="card"
+            style={{
+              animation: `slideInUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${item.delay} both`,
+            }}
+          >
+            <div className="text-3xl mb-3">{item.icon}</div>
+            <h4 className="font-semibold mb-1">{item.title}</h4>
+            <p className="text-sm text-white/60">{item.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="card animate-slideInUp" style={{ animationDelay: "0.6s" }}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="section-title mb-0">📈 今日统计</h3>
+          <div className="text-sm text-white/60">
+            {new Date().toLocaleDateString('zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-400 mb-2">{todayStats.todayTasks}</div>
+            <div className="text-sm text-white/60">今日专注任务</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-400 mb-2">{formatElapsedTime(todayStats.totalFocusTime)}</div>
+            <div className="text-sm text-white/60">总专注时长</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-purple-400 mb-2">{todayStats.completedTasks}</div>
+            <div className="text-sm text-white/60">完成任务</div>
+          </div>
+        </div>
+
+        {todayStats.todayTasks > 0 && (
+          <div className="mt-6 pt-4 border-t border-white/10">
+            <div className="text-sm text-white/70 mb-3">今日效率指标</div>
+            <div className="w-full bg-white/10 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-1000"
+                style={{ width: `${Math.min((todayStats.completedTasks / todayStats.todayTasks) * 100, 100)}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-white/50 mt-2 text-center">
+              任务完成率：{todayStats.todayTasks > 0 ? Math.round((todayStats.completedTasks / todayStats.todayTasks) * 100) : 0}%
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default OverviewPage;
