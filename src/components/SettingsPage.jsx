@@ -155,7 +155,7 @@ export default function SettingsPage({
         <div className="text-4xl mb-3">🚀</div>
         <h3 className="font-semibold text-lg mb-2">DeskPilot v1.0</h3>
         <p className="text-white/60 text-sm">Made with ❤️ for productivity</p>
-        <p className="text-white/40 text-xs mt-4">© 2024 - 保持专注，记录成长</p>
+        <p className="text-white/40 text-xs mt-4">© 2026 - 保持专注，记录成长</p>
       </div>
     </div>
   );
