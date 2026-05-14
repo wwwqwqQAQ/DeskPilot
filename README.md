@@ -1,6 +1,6 @@
 # 🎯 DeskPilot | 专注台
 
-**DeskPilot** 是一款专为 macOS 设计的轻量级效率助手。它将“专注计时”与“文件管理”无缝结合，帮助你在高效工作的同时保持桌面整洁。
+**DeskPilot** 是一款专为 macOS 设计的轻量级效率助手。它将"专注计时"与"文件管理"无缝结合，帮助你在高效工作的同时保持桌面整洁。
 
 ---
 
@@ -10,22 +10,22 @@
 1. **心流中断**：专注时突然冒出杂念，不记下来怕忘，记下来又打断了思路。
 2. **桌面混乱**：一场专注结束后，桌面往往堆满了临时下载的素材、截图和文档。
 
-**DeskPilot 正是为了解决这些问题而生。​**
+**DeskPilot 正是为了解决这些问题而生。**
 
 ### 🚀 核心功能
-- **​⏱️ 沉浸计时**：简洁的计时界面，支持多任务切换，精准记录每一分钟。
-- **​📝 杂念快记**：专注时一键捕捉分心念头，清空大脑负载，任务结束后统一复盘。
-- **​📂 智能整理**：任务结束后自动扫描桌面和下载文件夹，按文件类型一键归档至 `~/DeskPilot整理`。
-- **​📊 效率总览**：直观展示专注时长分布、任务完成情况及文件产出统计。
-- **​🔒 本地存储**：基于 Tauri 构建，数据完全存储在本地，不上传云端，保护您的隐私。
+- **⏱️ 沉浸计时**：简洁的计时界面，支持多任务切换，精准记录每一分钟。
+- **📝 杂念快记**：专注时一键捕捉分心念头，清空大脑负载，任务结束后统一复盘。
+- **📂 智能整理**：任务结束后自动扫描桌面和下载文件夹，按文件类型一键归档至 `~/Desktop/Organized`。
+- **📊 效率总览**：直观展示专注时长分布、任务完成情况及文件产出统计。
+- **🔒 本地存储**：基于 Tauri 构建，数据完全存储在本地，不上传云端，保护您的隐私。
 
 ---
 
 ## 📦 下载与安装
 
-1. 前往 [Releases 页面](这里替换成你仓库的Release链接) 下载最新的 `.dmg` 文件。
+1. 前往 [Releases 页面](https://github.com/wwwqwqQAQ/DeskPilot/releases) 下载最新的 `.dmg` 文件。
 2. 双击打开并将 **DeskPilot** 拖入 `Applications` 文件夹。
-3. **首次运行注意**：由于应用未签名，若提示“无法打开”，请前往 `系统设置 -> 隐私与安全性`，点击“仍要打开”。
+3. **首次运行注意**：由于应用未签名，若提示"无法打开"，请前往 `系统设置 -> 隐私与安全性`，点击"仍要打开"。
 
 ---
 
@@ -39,30 +39,57 @@
 
 ## 🤝 贡献与反馈
 
-如果您在使用过程中有任何建议或发现了 Bug，欢迎提交 [Issue](这里替换成你仓库的Issue链接)。
+如果您在使用过程中有任何建议或发现了 Bug，欢迎提交 [Issue](https://github.com/wwwqwqQAQ/DeskPilot/issues)。
 
 ---
 
 ## 📄 开源协议
 
 基于 [MIT License](LICENSE) 开源。
-# React + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+---
 
-Currently, two official plugins are available:
+## 📝 更新日志
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### v1.1.0 (2026-05-14)
 
-## React Compiler
+**🆕 新功能**
+- **键盘快捷键**：`Cmd+Shift+F` 开始/暂停/继续专注，`Cmd+Shift+N` 快速新建任务
+- **音频通知**：倒计时归零时播放提示音（C-E-G 三音阶）
+- **每日专注目标**：设置页配置每日目标时长（30/60/90/120/180 分钟），总览页实时进度
+- **专注连续天数**：总览页展示连续专注天数，保持动力
+- **任务优先级**：高/中/低三档优先级，彩色圆点标识，支持按优先级筛选
+- **番茄钟休息提醒**：倒计时结束后弹出 5 分钟休息提示，可选择跳过
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**🐛 修复**
+- 修复 `max-w-8xl` CSS 类名无效的问题
+- 修复倒计时归零后 `remainingSeconds` 因 falsy 值重置的 bug
+- 修复设置页文件整理路径描述与实际后端不一致的问题
+- `App.css`、`.backup` 文件、空 `format.js` 等死代码清理
+- `.gitignore` 新增 `src-tauri/target` 忽略规则
+- HTML `lang` 属性改为 `zh-CN`
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-### **​☕ 支持作者**如果你觉得这个工具帮到了你，欢迎请作者喝杯咖啡。
+### v1.0.0 (2026-04-19)
+
+- 🎉 DeskPilot 首个正式版本
+- 任务管理：创建、删除、搜索、状态筛选
+- 专注计时：正计时 / 倒计时两种模式
+- 快速记录：专注期间随时添加时间戳笔记
+- 任务复盘：专注结束后写复盘总结
+- 文件扫描：结束专注后自动扫描桌面和下载文件夹的新增文件
+- 文件整理：按类型自动分类整理到指定目录
+- 数据导入导出：JSON 格式备份/恢复
+
+---
+
+### ☕ 支持作者
+
+如果你觉得这个工具帮到了你，欢迎请作者喝杯咖啡。
+
 | 微信支付 | 支付宝 |
+| :---: | :---: |
 | <img src="wx.jpg" width="200" /> | <img src="zfb.jpg" width="200" /> |
-**感谢你的支持与鼓励！​**
+
+**感谢你的支持与鼓励！**
