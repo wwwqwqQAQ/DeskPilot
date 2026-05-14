@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import TopToast from "./components/TopToast";
 import OverviewPage from "./components/OverviewPage";
@@ -25,6 +25,28 @@ const initTauri = async () => {
 
 // 初始化 Tauri
 initTauri();
+
+function playNotificationChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+    const now = ctx.currentTime;
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now + i * 0.15);
+      gain.gain.setValueAtTime(0, now + i * 0.15);
+      gain.gain.linearRampToValueAtTime(0.3, now + i * 0.15 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.25);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + i * 0.15);
+      osc.stop(now + i * 0.15 + 0.25);
+    });
+  } catch {
+    // Audio not available — silently ignore
+  }
+}
 
 const STORAGE_KEY = "deskpilot_pages_refactor_v2";
 
@@ -59,6 +81,10 @@ function App() {
   const [selectedType, setSelectedType] = useState(
     initialStorageData.selectedType || "全部"
   );
+  const [priorityFilter, setPriorityFilter] = useState(
+    initialStorageData.priorityFilter || "全部"
+  );
+  const [newTaskPriority, setNewTaskPriority] = useState("medium");
 
   const [noteInput, setNoteInput] = useState("");
   const [reviewInput, setReviewInput] = useState("");
@@ -82,6 +108,13 @@ function App() {
   const [countdownMinutes, setCountdownMinutes] = useState(
     initialStorageData.countdownMinutes || defaultFocusMinutes
   );
+  const [focusNewTaskTrigger, setFocusNewTaskTrigger] = useState(0);
+  const [dailyGoalMinutes, setDailyGoalMinutes] = useState(
+    initialStorageData.dailyGoalMinutes || 60
+  );
+  const [showBreakPrompt, setShowBreakPrompt] = useState(false);
+  const [breakActive, setBreakActive] = useState(false);
+  const [breakSeconds, setBreakSeconds] = useState(300);
 
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId) || null,
@@ -155,6 +188,18 @@ function App() {
     }
   };
 
+  const startBreak = () => {
+    setShowBreakPrompt(false);
+    setBreakActive(true);
+    setBreakSeconds(300);
+  };
+
+  const skipBreak = () => {
+    setShowBreakPrompt(false);
+    setBreakActive(false);
+    setTimeout(() => endFocus(), 0);
+  };
+
   useEffect(() => {
     // 检查 Tauri 是否已正确初始化
     if (!tauriReady) {
@@ -179,6 +224,8 @@ function App() {
         enableToast,
         isCountdownMode,
         countdownMinutes,
+        dailyGoalMinutes,
+        priorityFilter,
       })
     );
   }, [
@@ -190,6 +237,10 @@ function App() {
     selectedType,
     defaultFocusMinutes,
     enableToast,
+    isCountdownMode,
+    countdownMinutes,
+    dailyGoalMinutes,
+    priorityFilter,
   ]);
 
   useEffect(() => {
@@ -198,19 +249,18 @@ function App() {
     return () => clearTimeout(id);
   }, [toast, enableToast]);
 
-  // 自动结束倒计时专注
+  // 自动结束倒计时专注 → 弹出休息提示
   useEffect(() => {
     const runningTask = tasks.find(t => t.running && !t.paused && t.remainingSeconds === 0);
     if (runningTask && isCountdownMode) {
-      // 使用 setTimeout 避免在 useEffect 中同步调用 setState
       setTimeout(() => {
-        endFocus();
+        playNotificationChime();
+        setShowBreakPrompt(true);
         if (enableToast) {
-          setToast("🎉 专注时间到！任务已自动结束");
+          setToast("🎉 专注时间到！休息一下吧");
         }
       }, 0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, isCountdownMode, enableToast]);
 
   useEffect(() => {
@@ -225,7 +275,7 @@ function App() {
                   ...task,
                   elapsedSeconds: (task.elapsedSeconds || 0) + 1,
                   remainingSeconds: isCountdownMode
-                    ? Math.max(0, (task.remainingSeconds || countdownMinutes * 60) - 1)
+                    ? Math.max(0, (task.remainingSeconds ?? countdownMinutes * 60) - 1)
                     : task.remainingSeconds
                 }
               : task
@@ -236,6 +286,23 @@ function App() {
     }
   }, [tasks, isCountdownMode, countdownMinutes]);
 
+  // 休息倒计时
+  useEffect(() => {
+    if (!breakActive) return;
+    const timer = setInterval(() => {
+      setBreakSeconds((prev) => {
+        if (prev <= 1) {
+          setBreakActive(false);
+          setTimeout(() => endFocus(), 0);
+          return 300;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [breakActive]);
+
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const matchText = task.name
@@ -243,9 +310,11 @@ function App() {
         .includes(searchText.toLowerCase().trim());
       const matchStatus =
         statusFilter === "全部" || (task.status || "未开始") === statusFilter;
-      return matchText && matchStatus;
+      const matchPriority =
+        priorityFilter === "全部" || (task.priority || "medium") === priorityFilter;
+      return matchText && matchStatus && matchPriority;
     });
-  }, [tasks, searchText, statusFilter]);
+  }, [tasks, searchText, statusFilter, priorityFilter]);
 
   const classifiedFiles = useMemo(() => {
     if (!selectedTask) return [];
@@ -269,6 +338,35 @@ function App() {
   }, [classifiedFiles]);
 
   const allTypes = ["全部", ...Object.keys(fileTypeStats)];
+
+  const focusStreak = useMemo(() => {
+    const sessionDates = new Set();
+    tasks.forEach((task) => {
+      (task.sessions || []).forEach((session) => {
+        if (session.durationSeconds > 0 || session.endTime) {
+          const d = new Date(session.startTime);
+          if (!isNaN(d.getTime())) {
+            sessionDates.add(d.toDateString());
+          }
+        }
+      });
+    });
+
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      if (sessionDates.has(checkDate.toDateString())) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    const todayStr = today.toDateString();
+    return { streak, hasSessionToday: sessionDates.has(todayStr) };
+  }, [tasks]);
 
   const summary = useMemo(() => {
     let running = 0;
@@ -301,6 +399,7 @@ function App() {
     const task = {
       id: Date.now(),
       name: newTaskName,
+      priority: newTaskPriority,
       status: "未开始",
       running: false,
       paused: false,
@@ -317,6 +416,7 @@ function App() {
     setSelectedTaskId(task.id);
     setReviewInput("");
     setNewTaskName("");
+    setNewTaskPriority("medium");
     setPage("tasks");
     showToast("任务已创建");
   };
@@ -567,6 +667,8 @@ function App() {
     setSelectedType("全部");
     setNoteInput("");
     setReviewInput("");
+    setDailyGoalMinutes(60);
+    setPriorityFilter("全部");
     localStorage.removeItem(STORAGE_KEY);
     showToast("已清空全部历史");
   };
@@ -583,6 +685,8 @@ function App() {
       enableToast,
       isCountdownMode,
       countdownMinutes,
+      dailyGoalMinutes,
+      priorityFilter,
       exportTime: new Date().toISOString(),
       version: "1.0"
     };
@@ -629,6 +733,8 @@ function App() {
           setEnableToast(typeof data.enableToast === "boolean" ? data.enableToast : true);
           setIsCountdownMode(typeof data.isCountdownMode === "boolean" ? data.isCountdownMode : true);
           setCountdownMinutes(data.countdownMinutes || data.defaultFocusMinutes || 25);
+          setDailyGoalMinutes(data.dailyGoalMinutes || 60);
+          setPriorityFilter(data.priorityFilter || "全部");
 
           showToast("数据已导入");
         } catch (error) {
@@ -641,11 +747,53 @@ function App() {
     input.click();
   };
 
+  // 键盘快捷键
+  const handlersRef = useRef({ startFocus, pauseFocus, resumeFocus, showToast });
+  const selectedTaskRef = useRef(selectedTask);
+
+  useEffect(() => {
+    handlersRef.current = { startFocus, pauseFocus, resumeFocus, showToast };
+    selectedTaskRef.current = selectedTask;
+  });
+
+  useEffect(() => {
+    const handler = (e) => {
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+
+      if (mod && e.shiftKey && e.key === "F") {
+        e.preventDefault();
+        const task = selectedTaskRef.current;
+        const h = handlersRef.current;
+        if (!task) {
+          h.showToast("请先选择一个任务");
+          return;
+        }
+        if (task.running && !task.paused) {
+          h.pauseFocus();
+        } else if (task.paused) {
+          h.resumeFocus();
+        } else {
+          h.startFocus();
+        }
+        return;
+      }
+
+      if (mod && e.shiftKey && e.key === "N") {
+        e.preventDefault();
+        setPage("tasks");
+        setFocusNewTaskTrigger((prev) => prev + 1);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <TopToast toast={toast} />
 
-      <div className="max-w-8xl mx-auto flex gap-6 p-6 md:p-8">
+      <div className="max-w-7xl mx-auto flex gap-6 p-6 md:p-8">
         <Sidebar page={page} setPage={setPage} />
 
         <main className="flex-1 min-w-0">
@@ -654,6 +802,8 @@ function App() {
               <OverviewPage
                 tasks={tasks}
                 summary={summary}
+                dailyGoalMinutes={dailyGoalMinutes}
+                focusStreak={focusStreak}
                 setSelectedTaskId={handleSelectTask}
                 setPage={setPage}
               />
@@ -686,6 +836,16 @@ function App() {
                 setIsCountdownMode={setIsCountdownMode}
                 countdownMinutes={countdownMinutes}
                 setCountdownMinutes={setCountdownMinutes}
+                focusNewTaskTrigger={focusNewTaskTrigger}
+                priorityFilter={priorityFilter}
+                setPriorityFilter={setPriorityFilter}
+                newTaskPriority={newTaskPriority}
+                setNewTaskPriority={setNewTaskPriority}
+                showBreakPrompt={showBreakPrompt}
+                breakActive={breakActive}
+                breakSeconds={breakSeconds}
+                startBreak={startBreak}
+                skipBreak={skipBreak}
               />
             )}
 
@@ -712,6 +872,8 @@ function App() {
                 setEnableToast={setEnableToast}
                 isCountdownMode={isCountdownMode}
                 setIsCountdownMode={setIsCountdownMode}
+                dailyGoalMinutes={dailyGoalMinutes}
+                setDailyGoalMinutes={setDailyGoalMinutes}
                 clearAllHistory={clearAllHistory}
                 exportData={exportData}
                 importData={importData}

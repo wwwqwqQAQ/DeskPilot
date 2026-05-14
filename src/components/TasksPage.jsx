@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 export default function TasksPage({
   filteredTasks,
   selectedTask,
@@ -24,7 +26,24 @@ export default function TasksPage({
   setIsCountdownMode,
   countdownMinutes,
   setCountdownMinutes,
+  focusNewTaskTrigger,
+  priorityFilter,
+  setPriorityFilter,
+  newTaskPriority,
+  setNewTaskPriority,
+  showBreakPrompt,
+  breakActive,
+  breakSeconds,
+  startBreak,
+  skipBreak,
 }) {
+  const newTaskInputRef = useRef(null);
+
+  useEffect(() => {
+    if (focusNewTaskTrigger > 0) {
+      newTaskInputRef.current?.focus();
+    }
+  }, [focusNewTaskTrigger]);
   const formatTime = (seconds) => {
     if (!seconds) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -60,12 +79,22 @@ export default function TasksPage({
 
           <div className="flex gap-3 mb-3">
             <input
+              ref={newTaskInputRef}
               type="text"
               placeholder="输入新任务名称"
               value={newTaskName}
               onChange={(e) => setNewTaskName(e.target.value)}
               className="flex-1 p-3 rounded-xl text-slate-900"
             />
+            <select
+              value={newTaskPriority}
+              onChange={(e) => setNewTaskPriority(e.target.value)}
+              className="px-3 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm"
+            >
+              <option value="high">🔴 高</option>
+              <option value="medium">🟡 中</option>
+              <option value="low">🔵 低</option>
+            </select>
             <button
               onClick={addTask}
               className="btn-base btn-primary"
@@ -95,6 +124,17 @@ export default function TasksPage({
               <option value="已扫描">已扫描</option>
               <option value="已整理">已整理</option>
             </select>
+
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="w-full p-3 rounded-xl text-white bg-white/10 border border-white/20"
+            >
+              <option value="全部">全部优先级</option>
+              <option value="high">🔴 高优先级</option>
+              <option value="medium">🟡 中优先级</option>
+              <option value="low">🔵 低优先级</option>
+            </select>
           </div>
 
           <div className="space-y-3">
@@ -112,7 +152,12 @@ export default function TasksPage({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-semibold">{task.name}</div>
+                      <div className="font-semibold flex items-center gap-2">
+                        <span className={`inline-block w-2 h-2 rounded-full ${
+                          { high: "bg-red-500", medium: "bg-amber-500", low: "bg-blue-500" }[task.priority || "medium"]
+                        }`} />
+                        {task.name}
+                      </div>
                       <div className="text-sm mt-1 text-white/60">
                         状态：{task.status || "未开始"}
                       </div>
@@ -142,6 +187,31 @@ export default function TasksPage({
             </div>
           ) : (
             <>
+              {(showBreakPrompt || breakActive) && (
+                <div className="card bg-gradient-to-br from-green-500/10 to-slate-800/50 border-green-500/30 animate-scaleIn">
+                  {showBreakPrompt ? (
+                    <div className="text-center">
+                      <div className="text-4xl mb-3">☕</div>
+                      <h3 className="text-xl font-semibold mb-2">专注时间结束！</h3>
+                      <p className="text-white/60 mb-4">休息5分钟，让大脑放松一下</p>
+                      <div className="flex gap-3 justify-center">
+                        <button onClick={startBreak} className="btn-base btn-primary">开始休息</button>
+                        <button onClick={skipBreak} className="btn-base btn-secondary">跳过休息</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-4xl mb-3 animate-float">☕</div>
+                      <div className="text-3xl font-mono font-bold text-green-400 mb-2">
+                        {Math.floor(breakSeconds / 60)}:{(breakSeconds % 60).toString().padStart(2, '0')}
+                      </div>
+                      <p className="text-white/60">休息中...</p>
+                      <button onClick={skipBreak} className="btn-base btn-secondary mt-4">结束休息</button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="card animate-slideInUp">
                 <h3 className="text-2xl font-semibold mb-4">
                   当前任务：{selectedTask.name}

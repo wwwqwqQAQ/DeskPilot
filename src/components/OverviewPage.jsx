@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-function OverviewPage({ tasks, summary, setSelectedTaskId, setPage }) {
+function OverviewPage({ tasks, summary, dailyGoalMinutes, focusStreak, setSelectedTaskId, setPage }) {
 
 
 const formatElapsedTime = (seconds) => {
@@ -121,7 +121,10 @@ const formatElapsedTime = (seconds) => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold group-hover:text-blue-300 transition-colors">
+                      <div className="font-semibold group-hover:text-blue-300 transition-colors flex items-center gap-2">
+                        <span className={`inline-block w-2 h-2 rounded-full ${
+                          { high: "bg-red-500", medium: "bg-amber-500", low: "bg-blue-500" }[task.priority || "medium"]
+                        }`} />
                         {task.name}
                       </div>
                       <div className="flex items-center gap-2 mt-2">
@@ -170,7 +173,7 @@ const formatElapsedTime = (seconds) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-400 mb-2">{todayStats.todayTasks}</div>
             <div className="text-sm text-white/60">今日专注任务</div>
@@ -183,6 +186,32 @@ const formatElapsedTime = (seconds) => {
             <div className="text-3xl font-bold text-purple-400 mb-2">{todayStats.completedTasks}</div>
             <div className="text-sm text-white/60">完成任务</div>
           </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-amber-400 mb-2">🔥 {focusStreak.streak}</div>
+            <div className="text-sm text-white/60">连续专注天数</div>
+          </div>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-white/10">
+          <div className="flex items-end justify-between mb-3">
+            <div className="text-sm text-white/70">🎯 每日目标</div>
+            <span className="text-sm font-semibold text-blue-300">
+              {Math.min(Math.round(todayStats.totalFocusTime / (dailyGoalMinutes * 60) * 100), 100)}%
+            </span>
+          </div>
+          <div className="progress-bar h-3">
+            <div
+              className="progress-fill h-3"
+              style={{ width: `${Math.min((todayStats.totalFocusTime / (dailyGoalMinutes * 60)) * 100, 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-2">
+            <span className="text-xs text-white/50">{formatElapsedTime(todayStats.totalFocusTime)}</span>
+            <span className="text-xs text-white/50">{dailyGoalMinutes}分钟</span>
+          </div>
+          {todayStats.totalFocusTime >= dailyGoalMinutes * 60 && (
+            <p className="text-sm text-green-400 mt-3 text-center">🎉 今日目标达成！</p>
+          )}
         </div>
 
         {todayStats.todayTasks > 0 && (

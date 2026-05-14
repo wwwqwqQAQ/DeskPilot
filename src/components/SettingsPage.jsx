@@ -5,6 +5,8 @@ export default function SettingsPage({
   setEnableToast,
   isCountdownMode,
   setIsCountdownMode,
+  dailyGoalMinutes,
+  setDailyGoalMinutes,
   clearAllHistory,
   exportData,
   importData
@@ -23,7 +25,7 @@ export default function SettingsPage({
             <div className="flex-1">
               <div className="font-semibold text-lg mb-2">📂 整理目录说明</div>
               <div className="text-sm text-white/70 leading-relaxed">
-                一键整理文件会把文件移动到你的用户目录下的 <code className="bg-white/10 px-2 py-1 rounded text-blue-300">DeskPilot整理</code> 文件夹中。系统会按文件类型自动分类。
+                一键整理文件会把文件移动到你的桌面下的 <code className="bg-white/10 px-2 py-1 rounded text-blue-300">Organized</code> 文件夹中。系统会按文件类型自动分类。
               </div>
             </div>
           </div>
@@ -72,6 +74,32 @@ export default function SettingsPage({
               </div>
 
               <div className="text-xs text-white/50 mt-3">💡 提示：建议采用番茄工作法，25分钟一个周期效率最高。</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card animate-slideInUp" style={{ animationDelay: "0.15s" }}>
+          <div className="flex items-start gap-4">
+            <div className="text-3xl">🎯</div>
+            <div className="flex-1">
+              <div className="font-semibold text-lg mb-3">每日目标</div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium mb-1">每日专注目标</div>
+                  <div className="text-sm text-white/60">设定每天的专注时长目标</div>
+                </div>
+                <select
+                  value={dailyGoalMinutes}
+                  onChange={(e) => setDailyGoalMinutes(Number(e.target.value))}
+                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white"
+                >
+                  <option value={30}>30分钟</option>
+                  <option value={60}>60分钟</option>
+                  <option value={90}>90分钟</option>
+                  <option value={120}>120分钟</option>
+                  <option value={180}>180分钟</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
