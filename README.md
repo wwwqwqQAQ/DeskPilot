@@ -4,7 +4,7 @@
 
 ## 📸 界面预览
 
-![DeskPilot 界面预览](preview.png)
+![DeskPilot 界面预览](preview.jpg)
 
 ---
 
